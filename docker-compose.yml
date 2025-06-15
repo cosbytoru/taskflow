@@ -26,7 +26,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
     ports:
-      - "5432:5432" # データベース接続のためにポートを開けておく
+      - "5433:5432" # ホスト側のポートを5433に変更
 
 volumes:
   postgres-data: # データを保存しておくための名前付きボリューム
