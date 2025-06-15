@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+    <!-- ヘッダー -->
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-lg font-bold">Ticket System - {{ current_user.organization.name }}</div>
+            <div>
+                {% if current_user.is_authenticated %}
+                    <span class="mr-4">ようこそ, {{ current_user.username }} さん ({{ current_user.role.name }})</span>
+                    <a href="{{ url_for('edit_profile') }}" class="mr-4 text-sky-500 hover:text-sky-700">プロファイル編集</a>
+                    <a href="{{ url_for('logout') }}" class="text-red-500 hover:text-red-700">ログアウト</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto mt-10 px-4">
+        <h1 class="text-4xl font-bold text-center mb-8">Ticket Dashboard</h1>
+
+        <!-- フラッシュメッセージ -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div id="flashMessages" class="mb-4 max-w-4xl mx-auto">
+              {% for category, message in messages %}
+                <div class="p-4 rounded-lg 
+                  {% if category == 'success' %} bg-green-100 text-green-800 
+                  {% elif category == 'danger' %} bg-red-100 text-red-800
+                  {% else %} bg-blue-100 text-blue-800 {% endif %}"
+                  role="alert">
+                  {{ message }}
+                </div>
+              {% endfor %}
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- チケット追加フォーム -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold mb-4">新しいチケットを作成</h2>
+            <form action="{{ url_for('add_ticket') }}" method="post" class="space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-slate-700 mb-1">タイトル</label>
+                    <input type="text" name="title" id="title" placeholder="チケットの件名..." required
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="assignee_id" class="block text-sm font-medium text-slate-700 mb-1">担当者</label>
+                        <select name="assignee_id" id="assignee_id" class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                            <option value="0">未割り当て</option>
+                            {% for user in organization_users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="due_date" class="block text-sm font-medium text-slate-700 mb-1">期限日</label>
+                        <input type="date" name="due_date" id="due_date"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                    </div>
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-slate-700 mb-1">優先度</label>
+                        <select name="priority" id="priority" class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                            {% for p_val, p_disp in priorities.items() %}
+                            <option value="{{ p_val }}" {% if p_val == 2 %}selected{% endif %}>{{ p_disp }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition">作成</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- フィルタリングとソート -->
+        <div class="mb-4 p-4 bg-white rounded-lg shadow-md flex flex-wrap justify-between items-center gap-4">
+            <form method="GET" action="{{ url_for('index') }}" class="flex items-center gap-x-2">
+                <input type="text" name="search_term" placeholder="タイトルで検索..." value="{{ current_search_term or '' }}" class="px-3 py-2 text-sm rounded-md border border-slate-300 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                <button type="submit" class="px-4 py-2 text-sm rounded-md bg-sky-500 text-white hover:bg-sky-600">検索</button>
+            </form>
+            <form method="GET" action="{{ url_for('index') }}" class="flex items-center gap-x-2">
+                <label for="filter_status_select" class="text-sm font-medium text-slate-700">状態:</label>
+                <select name="filter_status" id="filter_status_select" onchange="this.form.submit()" class="px-3 py-2 text-sm rounded-md border border-slate-300 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                    <option value="all" {% if not current_filter_status or current_filter_status == 'all' %}selected{% endif %}>すべて</option>
+                    {% for status in ticket_statuses %}
+                    <option value="{{ status }}" {% if current_filter_status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <!-- チケット一覧 -->
+        <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">タイトル</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">状態</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">優先度</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">依頼者</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">担当者</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">期限日</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for ticket in tickets %}
+                    <tr id="ticket-{{ ticket.id }}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ ticket.id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-800">{{ ticket.title }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if ticket.status == '新規' %} bg-blue-100 text-blue-800 
+                                {% elif ticket.status == '対応中' %} bg-yellow-100 text-yellow-800
+                                {% elif ticket.status == '解決済み' %} bg-green-100 text-green-800
+                                {% elif ticket.status == 'クローズ' %} bg-gray-100 text-gray-800
+                                {% else %} bg-purple-100 text-purple-800 {% endif %}">
+                                {{ ticket.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ priorities.get(ticket.priority, 'N/A') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ ticket.requester.username }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ ticket.assignee.username if ticket.assignee else '未割り当て' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else 'N/A' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{{ url_for('edit_ticket', ticket_id=ticket.id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">編集</a>
+                            {% if current_user.is_admin() %}
+                            <a href="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" onclick="return confirm('本当にこのチケットを削除しますか？')" class="text-red-600 hover:text-red-900">削除</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center p-4 text-slate-500">チケットはありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <footer class="text-center mt-8 text-slate-500 text-sm">
+            <p>Powered by Flask, Docker & Tailwind CSS</p>
+        </footer>
+    </div>
+</body>
+</html>

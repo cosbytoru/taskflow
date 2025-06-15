@@ -1,0 +1,32 @@
+services:
+  # 1つ目のサービス：Webアプリケーション
+  web:
+    build: . # 同じディレクトリにあるDockerfileを使ってビルドする
+    ports:
+      - "5001:5001" # PCの5001番ポートとコンテナの5001番ポートを繋ぐ
+    volumes:
+      - .:/app # PCの現在のフォルダをコンテナの/appに同期させる（コードの変更が即時反映される）
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1 # Pythonの出力をバッファリングしないようにする
+      - PYTHONPATH=/app # Pythonがモジュールを検索するパスに/appを追加
+    depends_on:
+      - db # dbサービスが起動してから、webサービスを起動する
+    # DockerfileのCMDを上書きして、Gunicornのログレベルをdebugに設定
+    command: sh -c "flask db upgrade && gunicorn --bind 0.0.0.0:5001 --workers 1 --threads 8 --timeout 0 --log-level debug --access-logfile - --error-logfile - app:app"
+
+  # 2つ目のサービス：データベース
+  db:
+    image: postgres:16 # PostgreSQLの公式イメージを使用
+    volumes:
+      - postgres-data:/var/lib/postgresql/data # データを永続化する
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword # パスワード設定
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432" # データベース接続のためにポートを開けておく
+
+volumes:
+  postgres-data: # データを保存しておくための名前付きボリューム

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>アカウント作成</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 flex items-center justify-center h-screen">
+    <div class="w-full max-w-md">
+        <form method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h1 class="text-2xl font-bold text-center mb-6">新しい組織とアカウントを作成</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="p-3 mb-4 rounded-md 
+                            {% if category == 'success' %} bg-green-100 text-green-700 
+                            {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
+                            {% elif category == 'danger' %} bg-red-100 text-red-700
+                            {% else %} bg-blue-100 text-blue-700 {% endif %}"
+                            role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="organization_name">組織名</label>
+                <input name="organization_name" id="organization_name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">あなたのユーザー名</label>
+                <input name="username" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">パスワード</label>
+                <input name="password" id="password" type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full">作成</button>
+            </div>
+            <div class="text-center mt-4">
+                 <a href="{{ url_for('login') }}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">既にアカウントをお持ちですか？ ログイン</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

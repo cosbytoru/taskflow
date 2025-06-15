@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロファイル編集 - ToDo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+    <!-- ヘッダー -->
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="{{ url_for('index') }}" class="text-lg font-bold">ToDo App</a>
+            <div>
+                {% if current_user.is_authenticated %}
+                    <span class="mr-4">ようこそ, {{ current_user.username }} さん</span>
+                    <a href="{{ url_for('logout') }}" class="text-red-500 hover:text-red-700">ログアウト</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto mt-10 max-w-lg">
+        <h1 class="text-3xl font-bold text-center mb-8">プロファイル編集</h1>
+
+        <!-- フラッシュメッセージ表示エリア -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-lg
+                    {% if category == 'success' %} bg-green-100 text-green-800
+                    {% elif category == 'danger' %} bg-red-100 text-red-800
+                    {% elif category == 'warning' %} bg-yellow-100 text-yellow-800
+                    {% else %} bg-blue-100 text-blue-800 {% endif %}"
+                    role="alert">
+                    {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <form method="post" action="{{ url_for('edit_profile') }}" class="space-y-4">
+                <div>
+                    <label for="current_password" class="block text-sm font-medium text-slate-700 mb-1">現在のパスワード</label>
+                    <input type="password" name="current_password" id="current_password" required class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                </div>
+                <div>
+                    <label for="new_password" class="block text-sm font-medium text-slate-700 mb-1">新しいパスワード</label>
+                    <input type="password" name="new_password" id="new_password" required class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                </div>
+                <div>
+                    <label for="confirm_new_password" class="block text-sm font-medium text-slate-700 mb-1">新しいパスワード (確認)</label>
+                    <input type="password" name="confirm_new_password" id="confirm_new_password" required class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                </div>
+                <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition">パスワードを変更</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

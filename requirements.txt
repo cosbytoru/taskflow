@@ -1,0 +1,9 @@
+Flask
+psycopg2-binary
+flake8
+Flask-Login
+Werkzeug
+gunicorn
+Flask-SQLAlchemy
+Flask-Migrate
+pytest

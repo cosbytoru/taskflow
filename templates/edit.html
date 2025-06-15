@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チケットの編集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+    <div class="container mx-auto mt-10 max-w-2xl">
+        <h1 class="text-4xl font-bold text-center mb-8">チケットを編集する (ID: {{ ticket.id }})</h1>
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            {% if ticket %}
+            <form action="{{ url_for('edit_ticket', ticket_id=ticket.id) }}" method="post" class="space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-slate-700 mb-1">タイトル</label>
+                    <input type="text" name="title" id="title" value="{{ ticket.title }}" required
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-slate-700 mb-1">状態</label>
+                        <select name="status" id="status" class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                            {% for status in ticket_statuses %}
+                            <option value="{{ status }}" {% if ticket.status == status %}selected{% endif %}>{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="assignee_id" class="block text-sm font-medium text-slate-700 mb-1">担当者</label>
+                        <select name="assignee_id" id="assignee_id" class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                            <option value="0">未割り当て</option>
+                            {% for user in organization_users %}
+                            <option value="{{ user.id }}" {% if ticket.assignee_id == user.id %}selected{% endif %}>{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="due_date" class="block text-sm font-medium text-slate-700 mb-1">期限日</label>
+                        <input type="date" name="due_date" id="due_date" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                    </div>
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-slate-700 mb-1">優先度</label>
+                        <select name="priority" id="priority" class="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                             {% for p_val, p_disp in priorities.items() %}
+                            <option value="{{ p_val }}" {% if ticket.priority == p_val %}selected{% endif %}>{{ p_disp }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-4 pt-4">
+                    <a href="{{ url_for('index') }}" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 px-6 rounded-lg transition">
+                        キャンセル
+                    </a>
+                    <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                        更新
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <p class="text-center text-red-500">編集対象のチケットが見つかりませんでした。</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
