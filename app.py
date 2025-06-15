@@ -19,13 +19,16 @@ DB_PASS = os.environ.get("POSTGRES_PASSWORD", "mysecretpassword")
 DB_HOST = os.environ.get("DB_HOST", "db")
 DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_NAME = os.environ.get("POSTGRES_DB", "postgres")
-DATABASE_URI = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# CI環境など、外部からDATABASE_URLが指定された場合はそちらを優先
+if os.environ.get('DATABASE_URL'):
+    DATABASE_URI = os.environ.get('DATABASE_URL')
+else:
+    DATABASE_URI = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # --- Flask-SQLAlchemyとFlask-Migrateの設定 ---
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 # --- Flask-Loginの設定 ---
 login_manager = LoginManager()
@@ -33,6 +36,11 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # --- 定数 ---
+# SQLAlchemyとMigrateの初期化をapp.config設定後に行う
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+
 TICKET_STATUSES = ['新規', '対応中', '保留', '解決済み', 'クローズ']
 PRIORITIES = {1: "低", 2: "中", 3: "高"}
 
