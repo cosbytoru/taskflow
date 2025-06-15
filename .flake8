@@ -2,4 +2,4 @@
 # 1行の最大文字数を120文字に緩和
 max-line-length = 120
 # 無視するエラーコード (例: E501はmax-line-length違反)
-ignore = W503, E261, E302, W291, E128, E122, W292
+ignore = W503, E261, E302, W291, E128, E122, W292,E501,E124

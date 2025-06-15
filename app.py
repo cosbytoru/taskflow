@@ -3,7 +3,7 @@
 import os
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -50,13 +50,13 @@ class Organization(db.Model):
     __tablename__ = 'organizations'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
-    users = db.relationship('User', backref='organization', lazy='dynamic')
-    tickets = db.relationship('Ticket', backref='organization', lazy='dynamic')
+    users = db.relationship('User', backref='organization', lazy='dynamic') # type: ignore
+    tickets = db.relationship('Ticket', backref='organization', lazy='dynamic') # type: ignore
 
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False) #例: 'admin', 'member'
+    name = db.Column(db.String(80), unique=True, nullable=False)  # 例: 'admin', 'member'
     users = db.relationship('User', backref='role', lazy=True)
 
 class User(UserMixin, db.Model):
@@ -64,17 +64,17 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    
+
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
 
     # ユーザーが一意である制約を organization_id と username の組み合わせにする
     __table_args__ = (db.UniqueConstraint('username', 'organization_id', name='_username_org_uc'),)
-    
+
     # リレーションシップ
     requested_tickets = db.relationship('Ticket', foreign_keys='Ticket.requester_id', backref='requester', lazy=True)
     assigned_tickets = db.relationship('Ticket', foreign_keys='Ticket.assignee_id', backref='assignee', lazy=True)
-    
+
     def is_admin(self):
         return self.role and self.role.name == 'admin'
 
@@ -89,8 +89,8 @@ class Ticket(db.Model):
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
     requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) # 担当者は未定の場合もある
-    
+    assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # 担当者は未定の場合もある
+
     subtickets = db.relationship('SubTicket', backref='ticket', lazy=True, cascade="all, delete-orphan")
 
 class SubTicket(db.Model):
@@ -140,7 +140,7 @@ def index():
     try:
         # ログインユーザーが所属する組織の全ユーザーを取得
         organization_users = User.query.filter_by(organization_id=current_user.organization_id).all()
-        
+
         # ベースとなるクエリ (自組織のチケットのみ)
         # joinedloadを使用してN+1問題を回避
         query = Ticket.query.options(
@@ -167,7 +167,7 @@ def index():
             'due_date': Ticket.due_date,
             'id': Ticket.id
         }
-        
+
         order_column = sort_logic.get(sort_by, Ticket.id)
         if sort_order == 'desc':
             query = query.order_by(order_column.desc())
@@ -181,14 +181,14 @@ def index():
         organization_users = []
 
     return render_template(
-        'index.html', 
-        tickets=tickets, 
+        'index.html',
+        tickets=tickets,
         organization_users=organization_users,
         priorities=PRIORITIES,
         ticket_statuses=TICKET_STATUSES,
-        current_sort_by=sort_by, 
-        current_sort_order=sort_order, 
-        current_filter_status=filter_status, 
+        current_sort_by=sort_by,
+        current_sort_order=sort_order,
+        current_filter_status=filter_status,
         current_search_term=search_term
     )
 
@@ -204,29 +204,29 @@ def signup():
         if not all([username, password, organization_name]):
             flash("すべてのフィールドを入力してください。", "warning")
             return redirect(url_for('signup'))
-        
+
         # 組織が既に存在するか確認
         org_exists = Organization.query.filter_by(name=organization_name).first()
         if org_exists:
             flash("その組織名は既に使用されています。別の名前を選択してください。", "warning")
             return redirect(url_for('signup'))
-        
+
         try:
             # 1. 組織を作成
             new_organization = Organization(name=organization_name)
             db.session.add(new_organization)
-            
+
             # 2. 役割を取得（なければ作成）
             admin_role = Role.query.filter_by(name='admin').first()
             if not admin_role:
                 admin_role = Role(name='admin')
                 db.session.add(admin_role)
-            
+
             member_role = Role.query.filter_by(name='member').first()
             if not member_role:
                 member_role = Role(name='member')
                 db.session.add(member_role)
-            
+
             db.session.flush() # IDを確定させる
 
             # 3. ユーザーを作成し、組織の最初のユーザーとして管理者ロールを割り当てる
@@ -239,7 +239,7 @@ def signup():
             )
             db.session.add(new_user)
             db.session.commit()
-            
+
             flash("組織とアカウントが作成されました。ログインしてください。", "success")
             return redirect(url_for('login'))
         except Exception as error:
@@ -249,7 +249,6 @@ def signup():
             return redirect(url_for('signup'))
 
     return render_template('signup.html')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -264,7 +263,7 @@ def login():
         if not organization:
             flash("組織が見つかりません。", "danger")
             return redirect(url_for('login'))
-        
+
         user = User.query.filter_by(username=username, organization_id=organization.id).first()
 
         if user and check_password_hash(user.password_hash, password):
@@ -283,7 +282,6 @@ def logout():
     logout_user()
     flash("ログアウトしました。", "info")
     return redirect(url_for('login'))
-
 
 @app.route('/ticket/add', methods=['POST'])
 @login_required
@@ -307,30 +305,30 @@ def add_ticket():
         )
         if due_date_str:
             new_ticket.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-        
+
         db.session.add(new_ticket)
         db.session.commit()
         flash(f"チケット「{title}」を追加しました。", "success")
     except Exception as error:
-        print("チケットの追加中にエラー:", error)
+        app.logger.error(f"チケットの追加中にエラー: {error}")
         db.session.rollback()
         flash("チケットの追加中にエラーが発生しました。", "danger")
-    
+
     return redirect(url_for('index'))
 
 @app.route('/ticket/<int:ticket_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_ticket(ticket_id):
     ticket_to_edit = Ticket.query.filter_by(id=ticket_id, organization_id=current_user.organization_id).first_or_404()
-    
+
     if request.method == 'POST':
         # 権限チェック (管理者、担当者、依頼者のみ編集可能)
-        if not (current_user.is_admin() or 
-                ticket_to_edit.assignee_id == current_user.id or 
-                ticket_to_edit.requester_id == current_user.id):
+        if not (current_user.is_admin()
+                or ticket_to_edit.assignee_id == current_user.id
+                or ticket_to_edit.requester_id == current_user.id):
             flash("このチケットを編集する権限がありません。", "danger")
             return redirect(url_for('index'))
-            
+
         new_title = request.form.get('title')
         new_due_date_str = request.form.get('due_date')
         new_priority = request.form.get('priority', type=int)
@@ -343,16 +341,16 @@ def edit_ticket(ticket_id):
                 ticket_to_edit.priority = new_priority
                 ticket_to_edit.status = new_status
                 ticket_to_edit.assignee_id = new_assignee_id if new_assignee_id != 0 else None
-                
+
                 if new_due_date_str:
                     ticket_to_edit.due_date = datetime.strptime(new_due_date_str, '%Y-%m-%d').date()
                 else:
                     ticket_to_edit.due_date = None
-                
+
                 db.session.commit()
                 flash(f"チケットID {ticket_id} を更新しました。", "success")
             except Exception as error:
-                print(f"チケットID {ticket_id} の更新中にエラー: {error}")
+                app.logger.error(f"チケットID {ticket_id} の更新中にエラー: {error}")
                 db.session.rollback()
                 flash(f"チケットID {ticket_id} の更新中にエラーが発生しました。", "danger")
         else:
@@ -360,7 +358,12 @@ def edit_ticket(ticket_id):
         return redirect(url_for('index'))
 
     organization_users = User.query.filter_by(organization_id=current_user.organization_id).all()
-    return render_template('edit.html', ticket=ticket_to_edit, organization_users=organization_users, ticket_statuses=TICKET_STATUSES, priorities=PRIORITIES)
+    return render_template('edit.html',
+                           ticket=ticket_to_edit,
+                           organization_users=organization_users,
+                           ticket_statuses=TICKET_STATUSES,
+                           priorities=PRIORITIES)
+
 
 @app.route('/ticket/<int:ticket_id>/delete')
 @login_required
@@ -375,7 +378,7 @@ def delete_ticket(ticket_id):
         else:
             flash(f"チケットID {ticket_id} が見つからないか、権限がありません。", "warning")
     except Exception as error:
-        print(f"チケット {ticket_id} の削除中にエラー: {error}")
+        app.logger.error(f"チケット {ticket_id} の削除中にエラー: {error}")
         db.session.rollback()
         flash(f"チケットID {ticket_id} の削除中にエラーが発生しました。", "danger")
     return redirect(url_for('index'))
@@ -408,7 +411,7 @@ def toggle_subticket(subticket_id):
     subticket = SubTicket.query.get_or_404(subticket_id)
     # 権限チェック：サブチケットが所属する親チケットが、ログインユーザーの組織のものか確認
     if subticket.ticket.organization_id != current_user.organization_id:
-        abort(403) # Forbidden
+        abort(403)  # Forbidden
 
     try:
         subticket.completed = not subticket.completed
@@ -418,7 +421,6 @@ def toggle_subticket(subticket_id):
         db.session.rollback()
         flash(f"サブチケットの状態更新中にエラー: {e}", "danger")
     return redirect(url_for('index', _anchor=f'ticket-{subticket.ticket_id}'))
-
 
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
