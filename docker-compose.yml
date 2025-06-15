@@ -13,8 +13,8 @@ services:
       - PYTHONPATH=/app # Pythonがモジュールを検索するパスに/appを追加
     depends_on:
       - db # dbサービスが起動してから、webサービスを起動する
-    # DockerfileのCMDを上書きして、Gunicornのログレベルをdebugに設定
-    command: sh -c "flask db upgrade && gunicorn --bind 0.0.0.0:5001 --workers 1 --threads 8 --timeout 0 --log-level debug --access-logfile - --error-logfile - app:app"
+    # flask init-db を実行してからマイグレーションを適用し、Gunicornを起動
+    command: sh -c "flask init-db && flask db upgrade && gunicorn --bind 0.0.0.0:5001 --workers 1 --threads 8 --timeout 0 --log-level debug --access-logfile - --error-logfile - app:app"
 
   # 2つ目のサービス：データベース
   db:

@@ -119,7 +119,7 @@ def admin_required(f):
 @app.cli.command("init-db")
 def init_db_command():
     """データベースを初期化し、基本的なロールを作成します。"""
-    db.create_all()
+    db.create_all() # テーブルもここで作成する
     # Check if roles exist
     if Role.query.count() == 0:
         print("Creating default roles...")
